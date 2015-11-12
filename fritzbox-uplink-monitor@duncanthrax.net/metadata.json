@@ -1,0 +1,6 @@
+{
+ "shell-version": ["3.16.4"],
+ "uuid": "fritzbox-uplink-monitor@duncanthrax.net",
+ "name": "Fritzbox Uplink Monitor",
+ "description": "Show Fritzbox uplink utilization in the panel"
+}

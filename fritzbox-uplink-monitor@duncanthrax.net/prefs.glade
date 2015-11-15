@@ -120,15 +120,15 @@
                   <object class="GtkGrid" id="colorsGrid">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="row_spacing">8</property>
-                    <property name="column_spacing">37</property>
+                    <property name="row_spacing">6</property>
+                    <property name="row_homogeneous">True</property>
                     <child>
                       <object class="GtkBox" id="colorBox1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="spacing">8</property>
                         <child>
-                          <object class="GtkColorButton" id="downstreamTotalColorbutton">
+                          <object class="GtkColorButton" id="totalColorButton">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -143,7 +143,7 @@
                           <object class="GtkLabel" id="colorLabel1">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Downstream Total</property>
+                            <property name="label" translatable="yes">Total</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -153,7 +153,7 @@
                         </child>
                       </object>
                       <packing>
-                        <property name="left_attach">1</property>
+                        <property name="left_attach">0</property>
                         <property name="top_attach">0</property>
                       </packing>
                     </child>
@@ -163,7 +163,7 @@
                         <property name="can_focus">False</property>
                         <property name="spacing">8</property>
                         <child>
-                          <object class="GtkColorButton" id="downstreamOtherColorbutton">
+                          <object class="GtkColorButton" id="otherColorButton">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -178,7 +178,7 @@
                           <object class="GtkLabel" id="colorLabel2">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Downstream TV/Phone</property>
+                            <property name="label" translatable="yes">TV/Phone</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -188,7 +188,7 @@
                         </child>
                       </object>
                       <packing>
-                        <property name="left_attach">1</property>
+                        <property name="left_attach">0</property>
                         <property name="top_attach">1</property>
                       </packing>
                     </child>
@@ -198,7 +198,7 @@
                         <property name="can_focus">False</property>
                         <property name="spacing">8</property>
                         <child>
-                          <object class="GtkColorButton" id="upstreamTotalColorbutton">
+                          <object class="GtkColorButton" id="backgroundColorButton">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -213,7 +213,7 @@
                           <object class="GtkLabel" id="colorLabel3">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Upstream Total</property>
+                            <property name="label" translatable="yes">Background</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -224,42 +224,7 @@
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox" id="colorBox4">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="spacing">8</property>
-                        <child>
-                          <object class="GtkColorButton" id="upstreamOtherColorbutton">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="colorLabel4">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Upstream TV/Phone</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
+                        <property name="top_attach">2</property>
                       </packing>
                     </child>
                   </object>

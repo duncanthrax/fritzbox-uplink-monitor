@@ -12,12 +12,21 @@ const Clutter = imports.gi.Clutter;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Shell = imports.gi.Shell;
+const Gdk = imports.gi.Gdk;
+const Convenience = Me.imports.convenience;
 
 let BufferSize = 60;
 let FrameButton;
 let CanvasUp, CanvasDown, LabelUp, LabelDown;
 let FBInfo, LinkUp, Busy, TickCount, StopTimer;
 let CurrentUsageLabels;
+let Settings;
+
+function _parseRgbaColor(spec) {
+    let col = new Gdk.RGBA();
+    col.parse(spec);
+    return col;
+}
 
 function _bytes(value) {
   value = value || 0;
@@ -38,6 +47,8 @@ function _bytes(value) {
 
     return value + unit;
   }
+
+  return '???';
 }
 
 function _drawCanvas() {
@@ -53,15 +64,17 @@ function _drawCanvas() {
   let ctx = canvas.get_context();
 
   // Clear
-  let backgroundColor = new Clutter.Color({ red:24, green:24, blue:24, alpha:255 });
-  Clutter.cairo_set_source_color(ctx, backgroundColor);
+  let backgroundColor = Clutter.Color.from_string(Settings.get_string('background-color'));
+  if (!backgroundColor || !backgroundColor[0]) backgroundColor = new Clutter.Color({ red:27, green:27, blue:27, alpha:255 });
+  Clutter.cairo_set_source_color(ctx, backgroundColor[1]);
   ctx.rectangle(0, 0, width, height);
   ctx.fill();
 
   let i;
 
   // Paint compound graph
-  let totalColor = new Clutter.Color({ red:80, green:240, blue:80, alpha:255 });
+  let totalColor = Clutter.Color.from_string(Settings.get_string('total-color'));
+  if (!totalColor || !totalColor[0]) totalColor = new Clutter.Color({ red:252, green:175, blue:62, alpha:255 });
   ctx.moveTo(0, height);
   for (i=0; i<canvas.chartData.buffer.length; i++) {
     let d = canvas.chartData.buffer[i];
@@ -72,11 +85,12 @@ function _drawCanvas() {
   }
   ctx.lineTo(i, height);
   ctx.closePath();
-  Clutter.cairo_set_source_color(ctx, totalColor);
+  Clutter.cairo_set_source_color(ctx, totalColor[1]);
   ctx.fill();
 
   // Print "other traffic" graph
-  let otherColor = new Clutter.Color({ red:80, green:80, blue:240, alpha:255 });
+  let otherColor = Clutter.Color.from_string(Settings.get_string('other-color'));
+  if (!otherColor || !otherColor[0]) otherColor = new Clutter.Color({ red:206, green:92, blue:0, alpha:255 });
   ctx.moveTo(0, height);
   for (i=0; i<canvas.chartData.buffer.length; i++) {
     let d = canvas.chartData.buffer[i];
@@ -87,7 +101,7 @@ function _drawCanvas() {
   }
   ctx.lineTo(i, height);
   ctx.closePath();
-  Clutter.cairo_set_source_color(ctx, otherColor);
+  Clutter.cairo_set_source_color(ctx, otherColor[1]);
   ctx.fill();
 }
 
@@ -96,9 +110,13 @@ function _timer() {
   Mainloop.timeout_add_seconds(1, _timer);
   TickCount++; if (TickCount == 100) TickCount = 0;
   
+  BufferSize = Settings.get_uint('chart-width');
+  CanvasUp.set_width(BufferSize);
+  CanvasDown.set_width(BufferSize);
+
   // Query Link status if it's down, or update it every 10 seconds only.  
-  if (!LinkUp || (TickCount % 10)) {
-    FBInfo.GetRemote('192.168.254.1', 'LinkStatus', function(result) {
+  if (!LinkUp || !(TickCount % 10)) {
+    FBInfo.GetRemote(Settings.get_string('fritzbox-ip') || 'fritz.box', 'LinkStatus', function(result) {
 
       if (result && result[0]) {
         CanvasUp.chartData.max    = result[0].MaxBitsIn;
@@ -120,7 +138,7 @@ function _timer() {
   if (Busy) return;
 
   Busy = true;
-  FBInfo.GetRemote('192.168.254.1', 'TrafficStatus', function(result) {
+  FBInfo.GetRemote(Settings.get_string('fritzbox-ip') || 'fritz.box', 'TrafficStatus', function(result) {
 
     if (result && result[0]) {
       CanvasUp.chartData.buffer.push({
@@ -158,6 +176,8 @@ function _timer() {
 
 
 function init() {
+
+  Settings = Convenience.getSettings();
 
   // Just guessing. Is there a better way?
   let FontSize = Math.round(Panel.PANEL_ICON_SIZE / 3) + 1;

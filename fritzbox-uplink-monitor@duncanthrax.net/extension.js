@@ -9,11 +9,36 @@ const Mainloop = imports.mainloop;
 const Util = imports.misc.util;
 const Gio = imports.gi.Gio;
 const Clutter = imports.gi.Clutter;
+const PanelMenu = imports.ui.panelMenu;
+const PopupMenu = imports.ui.popupMenu;
+const Shell = imports.gi.Shell;
 
 let BufferSize = 60;
-let Layout;
+let FrameButton;
 let CanvasUp, CanvasDown, LabelUp, LabelDown;
 let FBInfo, LinkUp, Busy, TickCount, StopTimer;
+let CurrentUsageLabels;
+
+function _bytes(value) {
+  value = value || 0;
+
+  var units   = [ 'TB', 'GB', 'MB', 'kB', 'B' ];
+  var cutoffs = [   0,  8192, 8192, 8192, 1024 ];
+  var divs    = [   1,  1024, 1024, 1024, 1024 ];
+
+  while (units.length) {
+    var unit  = units.pop();
+    var cutoff  = cutoffs.pop();
+    var div     = divs.pop();
+
+    if (cutoff && (value > cutoff)) {
+      value = Math.floor(value / div);
+      continue;
+    }
+
+    return value + unit;
+  }
+}
 
 function _drawCanvas() {
   let canvas = this;
@@ -108,13 +133,25 @@ function _timer() {
           other: result[0].OtherBytesInRate
       });
       while (CanvasDown.chartData.buffer.length > BufferSize) CanvasDown.chartData.buffer.shift();
+
+      let valueOrder = [
+        result[0].InetBytesOutRate + result[0].OtherBytesOutRate,
+        result[0].OtherBytesOutRate,
+        result[0].InetBytesInRate + result[0].OtherBytesInRate,
+        result[0].OtherBytesInRate
+      ];
+
+      for (let i=0; i<4; i++) {
+        CurrentUsageLabels[i].set_text(_bytes(valueOrder[i]));
+      }
+
     }
 
     CanvasUp.queue_repaint();
     CanvasDown.queue_repaint();
     
     Busy = false;
-    
+
   });
 
 }
@@ -126,7 +163,9 @@ function init() {
   let FontSize = Math.round(Panel.PANEL_ICON_SIZE / 3) + 1;
 
   // Main layout. Gets added to the panel.
-  Layout = new St.BoxLayout({ style_class: 'um-widget' });
+  FrameButton = new PanelMenu.Button(0.5);
+  let layout = new St.BoxLayout({ style_class: 'um-widget' });
+  FrameButton.actor.add_actor(layout);
 
   // Upstream label and canvas
   LabelUp = new St.Label({ text: "??M", style: "font-size:"+FontSize+"px;" });
@@ -135,10 +174,10 @@ function init() {
                     { x_align: St.Align.MIDDLE, x_fill: false });
   layoutUpLabel.add(LabelUp,
                     { x_align: St.Align.MIDDLE, x_fill: false })
-  Layout.add(layoutUpLabel, { y_align: St.Align.MIDDLE, y_fill: false });
+  layout.add(layoutUpLabel, { y_align: St.Align.MIDDLE, y_fill: false });
   CanvasUp = new St.DrawingArea({style_class: 'um-chart-up', reactive: false});
   CanvasUp.set_width(BufferSize);
-  Layout.add(CanvasUp);
+  layout.add(CanvasUp);
 
   // Downstream label and canvas
   LabelDown = new St.Label({ text: "??M", style: "font-size:"+FontSize+"px;" });
@@ -147,10 +186,10 @@ function init() {
                     { x_align: St.Align.MIDDLE, x_fill: false })
   layoutDownLabel.add(new St.Label({ text: "↓", style: "font-size:"+FontSize+"px;" }),
                     { x_align: St.Align.MIDDLE, x_fill: false });
-  Layout.add(layoutDownLabel, { y_align: St.Align.MIDDLE, y_fill: false });
+  layout.add(layoutDownLabel, { y_align: St.Align.MIDDLE, y_fill: false });
   CanvasDown = new St.DrawingArea({style_class: 'um-chart-down', reactive: false});
   CanvasDown.set_width(BufferSize);
-  Layout.add(CanvasDown);
+  layout.add(CanvasDown);
 
   // DBus handle. Looks like it can't pull the introspection automatically. Meh.
   let proxy = Gio.DBusProxy.makeProxyWrapper('<node><interface name="org.cpan.fritzbox.upnp.dbus.info"><method name="Get"><arg type="s" direction="in" /><arg type="s" direction="in" /><arg type="a{su}" direction="out" /></method></interface></node>');
@@ -167,12 +206,61 @@ function init() {
     buffer:[]
   };
 
+  // Popup info
+  let infoPopupBox = new St.BoxLayout({ vertical : true, style_class : 'um-infopopup' });
+
+  let labels = [ 'Upstream Total', 'Upstream TV/Phone', 'Downstream Total', 'Downstream TV/Phone' ];
+
+  let table = new St.BoxLayout();
+  let lCol = new St.BoxLayout({ vertical : true });
+  let rCol = new St.BoxLayout({ vertical : true });
+
+  CurrentUsageLabels = [];
+  for (let i=0;i<4;i++) {
+    lCol.add(new St.Label({ text: labels[i], style_class : 'um-infopopup-label-left' }));
+    let label = new St.Label({ text: "???", style_class : 'um-infopopup-label-right' });
+    rCol.add(label);
+    CurrentUsageLabels.push(label);
+  }
+
+  table.add(lCol);
+  table.add(rCol);
+
+  infoPopupBox.add(table);
+
+  let infoPopup = new PopupMenu.PopupBaseMenuItem({ reactive: false, style_class: 'um-infopopup-item' });
+  infoPopup.actor.add(infoPopupBox);
+  
+  let prefsButton = new PopupMenu.PopupBaseMenuItem({ style_class: 'um-infopopup-item' });
+  prefsButton.actor.add(new St.Label({ text: "Preferences ..." }));
+
+  FrameButton.menu.addMenuItem(infoPopup);
+  FrameButton.menu.addMenuItem(prefsButton);
+
+  // Actions --------------------------------
+
+  // Repaint graphs
   CanvasUp.connect('repaint', Lang.bind(CanvasUp, _drawCanvas));
   CanvasDown.connect('repaint', Lang.bind(CanvasDown, _drawCanvas));
+
+  // Lauch preferences from popup menu
+  let appSys = Shell.AppSystem.get_default();
+  let gsePrefs = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
+  prefsButton.connect('activate', function () {
+    if (gsePrefs.get_state() == gsePrefs.SHELL_APP_STATE_RUNNING){
+      gsePrefs.activate();
+    }
+    else {
+      let info = gsePrefs.get_app_info();
+      let timestamp = global.display.get_current_time_roundtrip();
+      info.launch_uris([Me.metadata.uuid], global.create_app_launch_context(timestamp, -1));
+    }
+  });
+
 }
 
 function enable() {
-  Main.panel._rightBox.insert_child_at_index(Layout, 0);
+  Main.panel._addToPanelBox('fritzbox-uplink-monitor', FrameButton, 0, Main.panel._rightBox);
 
   // Start updating
   TickCount = 0;
@@ -183,7 +271,7 @@ function enable() {
 }
 
 function disable() {
-  Main.panel._rightBox.remove_child(Layout);
+  Main.panel._rightBox.remove_actor(FrameButton.container);
 
   // Stop updating
   StopTimer = true;

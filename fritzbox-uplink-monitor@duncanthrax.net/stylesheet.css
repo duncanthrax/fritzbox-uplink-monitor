@@ -10,3 +10,19 @@
 .um-chart-down {
     margin-left:3px;
 }
+
+.um-infopopup {
+}
+
+.um-infopopup-item {
+}
+
+.um-infopopup-label-left {
+	padding:0px 4px 8px 0px;
+	text-align:right;
+}
+
+.um-infopopup-label-right {
+	padding:0px 0px 8px 4px;
+	width:80px;
+}

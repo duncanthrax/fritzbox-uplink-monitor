@@ -18,7 +18,7 @@ const Convenience = Me.imports.convenience;
 let BufferSize = 60;
 let FrameButton;
 let CanvasUp, CanvasDown, LabelUp, LabelDown;
-let FBInfo, LinkUp, Busy, TickCount, StopTimer;
+let FBIp, FBInfo, LinkUp, Busy, TickCount, StopTimer;
 let CurrentUsageLabels;
 let Settings;
 
@@ -55,6 +55,7 @@ function _drawCanvas() {
   let canvas = this;
 
   let maxBytes = Math.floor(canvas.chartData.max / 8);
+  //let maxBytesNonLinear = Math.floor( Math.pow((canvas.chartData.max / 8), (1/3)) ) ;
 
   let [width, height] = canvas.get_surface_size();
 
@@ -78,6 +79,8 @@ function _drawCanvas() {
   ctx.moveTo(0, height);
   for (i=0; i<canvas.chartData.buffer.length; i++) {
     let d = canvas.chartData.buffer[i];
+    //let t = Math.pow((d.inet + d.other),(1/3));
+    //let h = Math.floor(t / (maxBytesNonLinear / height));
     let t = d.inet + d.other;
     let h = Math.floor(t / (maxBytes / height));
     if (h > height) h = height;
@@ -94,6 +97,8 @@ function _drawCanvas() {
   ctx.moveTo(0, height);
   for (i=0; i<canvas.chartData.buffer.length; i++) {
     let d = canvas.chartData.buffer[i];
+    //let t = Math.pow(d.other,(1/3));
+    //let h = Math.floor(t / (maxBytesNonLinear / height));
     let t = d.other;
     let h = Math.floor(t / (maxBytes / height));
     if (h > height) h = height;
@@ -105,6 +110,7 @@ function _drawCanvas() {
   ctx.fill();
 }
 
+
 function _timer() {
   if (StopTimer) return;
   Mainloop.timeout_add_seconds(1, _timer);
@@ -114,9 +120,21 @@ function _timer() {
   CanvasUp.set_width(BufferSize);
   CanvasDown.set_width(BufferSize);
 
+  let fbIp = Settings.get_string('fritzbox-ip') || 'fritz.box';
+  if (fbIp != FBIp) {
+    // When FB IP changes, reset the chart and link state
+    CanvasDown.chartData.buffer = [];
+    CanvasUp.chartData.buffer = [];
+    LinkUp = false;
+
+    CanvasUp.queue_repaint();
+    CanvasDown.queue_repaint();
+  }
+  FBIp = fbIp;
+
   // Query Link status if it's down, or update it every 10 seconds only.  
   if (!LinkUp || !(TickCount % 10)) {
-    FBInfo.GetRemote(Settings.get_string('fritzbox-ip') || 'fritz.box', 'LinkStatus', function(result) {
+    FBInfo.GetRemote(FBIp, 'LinkStatus', function(result) {
 
       if (result && result[0]) {
         CanvasUp.chartData.max    = result[0].MaxBitsIn;
@@ -138,7 +156,7 @@ function _timer() {
   if (Busy) return;
 
   Busy = true;
-  FBInfo.GetRemote(Settings.get_string('fritzbox-ip') || 'fritz.box', 'TrafficStatus', function(result) {
+  FBInfo.GetRemote(FBIp, 'TrafficStatus', function(result) {
 
     if (result && result[0]) {
       CanvasUp.chartData.buffer.push({

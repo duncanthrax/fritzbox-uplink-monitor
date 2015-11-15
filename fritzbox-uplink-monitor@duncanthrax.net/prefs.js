@@ -52,7 +52,7 @@ const FritzboxUplinkMonitorSettingsWidget = new GObject.Class({
 			let match = fritzboxIpEntry.get_text().trim().match(/^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})$/i);
 			if (match !== null) this._settings.set_string('fritzbox-ip', match[1]);
 		}));
-		this._settings.bind('fritzbox-ip', fritzboxIpEntry, "text", Gio.SettingsBindFlags.DEFAULT);
+		fritzboxIpEntry.set_text(this._settings.get_string('fritzbox-ip'));
 
 		chartWidthSpinButton.connect('value-changed', Lang.bind(this, function(button) {
             this._settings.set_uint('chart-width', button.get_value_as_int());
@@ -80,9 +80,7 @@ const FritzboxUplinkMonitorSettingsWidget = new GObject.Class({
 
 });
 
-
 function init() {
-
 };
 
 function buildPrefsWidget() {

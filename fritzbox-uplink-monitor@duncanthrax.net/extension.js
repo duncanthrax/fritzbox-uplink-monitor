@@ -22,12 +22,6 @@ let FBIp, FBInfo, LinkUp, Busy, TickCount, StopTimer;
 let CurrentUsageLabels;
 let Settings;
 
-function _parseRgbaColor(spec) {
-    let col = new Gdk.RGBA();
-    col.parse(spec);
-    return col;
-}
-
 function _bytes(value) {
   value = value || 0;
 
@@ -36,7 +30,7 @@ function _bytes(value) {
   var divs    = [   1,  1024, 1024, 1024, 1024 ];
 
   while (units.length) {
-    var unit  = units.pop();
+    var unit    = units.pop();
     var cutoff  = cutoffs.pop();
     var div     = divs.pop();
 
@@ -73,7 +67,7 @@ function _drawCanvas() {
 
   let i;
 
-  // Paint compound graph
+  // Paint "total" graph
   let totalColor = Clutter.Color.from_string(Settings.get_string('total-color'));
   if (!totalColor || !totalColor[0]) totalColor = new Clutter.Color({ red:252, green:175, blue:62, alpha:255 });
   ctx.moveTo(0, height);
@@ -116,13 +110,15 @@ function _timer() {
   Mainloop.timeout_add_seconds(1, _timer);
   TickCount++; if (TickCount == 100) TickCount = 0;
   
+  // Adjust buffersize if it changed in prefs
   BufferSize = Settings.get_uint('chart-width');
   CanvasUp.set_width(BufferSize);
   CanvasDown.set_width(BufferSize);
 
+  // Change FB IP if it changed in prefs. When it changes, reset the charts and link state.
   let fbIp = Settings.get_string('fritzbox-ip') || 'fritz.box';
   if (fbIp != FBIp) {
-    // When FB IP changes, reset the chart and link state
+    // When FB IP 
     CanvasDown.chartData.buffer = [];
     CanvasUp.chartData.buffer = [];
     LinkUp = false;
@@ -132,7 +128,7 @@ function _timer() {
   }
   FBIp = fbIp;
 
-  // Query Link status if it's down, or update it every 10 seconds only.  
+  // Query link status if it's down, or update it every 10 seconds only.  
   if (!LinkUp || !(TickCount % 10)) {
     FBInfo.GetRemote(FBIp, 'LinkStatus', function(result) {
 
@@ -143,7 +139,7 @@ function _timer() {
         LinkUp = result[0].LinkStatus ? true:false;
         
         if (LinkUp) {
-          // Update labels to show full megabits/sec max bandwidth
+          // Update charts labels to show full megabits/sec max bandwidth
           LabelUp.set_text(Math.floor(CanvasUp.chartData.max / 1000000).toString() + 'M');
           LabelDown.set_text(Math.floor(CanvasDown.chartData.max / 1000000).toString() + 'M');
         }
@@ -155,10 +151,13 @@ function _timer() {
   if (!LinkUp) return;
   if (Busy) return;
 
+  // Get current byte rates
   Busy = true;
   FBInfo.GetRemote(FBIp, 'TrafficStatus', function(result) {
 
     if (result && result[0]) {
+      
+      // Update charts
       CanvasUp.chartData.buffer.push({
           inet: result[0].InetBytesOutRate,
           other: result[0].OtherBytesOutRate
@@ -169,23 +168,22 @@ function _timer() {
           other: result[0].OtherBytesInRate
       });
       while (CanvasDown.chartData.buffer.length > BufferSize) CanvasDown.chartData.buffer.shift();
+      CanvasUp.queue_repaint();
+      CanvasDown.queue_repaint();
 
+      // Update popup menu labels
       let valueOrder = [
         result[0].InetBytesOutRate + result[0].OtherBytesOutRate,
         result[0].OtherBytesOutRate,
         result[0].InetBytesInRate + result[0].OtherBytesInRate,
         result[0].OtherBytesInRate
       ];
-
       for (let i=0; i<4; i++) {
         CurrentUsageLabels[i].set_text(_bytes(valueOrder[i]));
       }
-
     }
 
-    CanvasUp.queue_repaint();
-    CanvasDown.queue_repaint();
-    
+    // Ready for the next round
     Busy = false;
 
   });
@@ -195,12 +193,13 @@ function _timer() {
 
 function init() {
 
+  // Handle to our gschema settings
   Settings = Convenience.getSettings();
 
   // Just guessing. Is there a better way?
   let FontSize = Math.round(Panel.PANEL_ICON_SIZE / 3) + 1;
 
-  // Main layout. Gets added to the panel.
+  // Main "button" and layout. Gets added to the panel in enable()
   FrameButton = new PanelMenu.Button(0.5);
   let layout = new St.BoxLayout({ style_class: 'um-widget' });
   FrameButton.actor.add_actor(layout);
@@ -298,6 +297,8 @@ function init() {
 }
 
 function enable() {
+
+  // Add to panel
   Main.panel._addToPanelBox('fritzbox-uplink-monitor', FrameButton, 0, Main.panel._rightBox);
 
   // Start updating
@@ -309,6 +310,8 @@ function enable() {
 }
 
 function disable() {
+
+  // Remove from panel
   Main.panel._rightBox.remove_actor(FrameButton.container);
 
   // Stop updating

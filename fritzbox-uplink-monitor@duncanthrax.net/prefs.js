@@ -49,7 +49,12 @@ const FritzboxUplinkMonitorSettingsWidget = new GObject.Class({
 		let chartWidthSpinButton = builder.get_object('chartWidthSpinButton');
 
 		fritzboxIpEntry.connect('changed', Lang.bind(this, function() {
-			let match = fritzboxIpEntry.get_text().trim().match(/^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})$/i);
+			var text = fritzboxIpEntry.get_text().trim();
+			if (!text) { 
+				this._settings.set_string('fritzbox-ip', '');
+				return;
+			}
+			let match = text.match(/^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})$/i);
 			if (match !== null) this._settings.set_string('fritzbox-ip', match[1]);
 		}));
 		fritzboxIpEntry.set_text(this._settings.get_string('fritzbox-ip'));
@@ -77,11 +82,9 @@ const FritzboxUplinkMonitorSettingsWidget = new GObject.Class({
         this._backgroundColorButton.set_rgba(this._parseRgbaColor(this._settings.get_string('background-color')));
     }
 
-
 });
 
-function init() {
-};
+function init() {};
 
 function buildPrefsWidget() {
 	let widget = new FritzboxUplinkMonitorSettingsWidget();

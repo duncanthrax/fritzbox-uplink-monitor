@@ -13,20 +13,23 @@ const Convenience = Me.imports.convenience;
 const Soup = imports.gi.Soup;
 
 // Global UI handles
-let FrameButton;
+let FrameButton, PrefsButton;
 let CanvasUp, CanvasDown, LabelUp, LabelDown;
 let CurrentUsageLabels;
 
 // Global utility handles
 let Settings;
 let SoupSession;
+let IntervalTimer;
+let Signals = [];
 
 // Global config variables
 let BufferSize = 60;
 let FBIp = 'fritz.box';
+let FBVariant = false;
 
 // Global state
-let LinkUp, TickCount, StopTimer;
+let LinkUp, TickCount;
 
 
 // Human-readable byte amounts
@@ -67,7 +70,7 @@ function _queryFB(fbIp, action, successCallback) {
     if (ActionBusy[action]) return;
     ActionBusy[action] = true;
 
-    let url = 'http://' + fbIp + ':49000/igdupnp/control/WANCommonIFC1';
+    let url = 'http://' + fbIp + ':49000/' + (FBVariant ? 'igd':'')  + 'upnp/control/WANCommonIFC1';
     let request = Soup.Message.new('POST', url);
     let headers = request.request_headers;
     headers.append('SoapAction','urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1#' + action);
@@ -83,6 +86,11 @@ function _queryFB(fbIp, action, successCallback) {
         if (message && (message.status_code == 200)) {
             let data = request.response_body.data;
             if (data && data.match(action+'Response')) successCallback(data);
+        }
+        else {
+            // Models have different UPNP daemons that use a different path ...
+            // Flip the type, so we try the other variant next time.
+            FBVariant = !FBVariant;
         }
         ActionBusy[action] = false;
     }));
@@ -168,8 +176,6 @@ function _drawCanvas() {
 
 
 function _timer() {
-    if (StopTimer) return;
-    Mainloop.timeout_add_seconds(1, _timer);
     TickCount++; if (TickCount == 100) TickCount = 0;
     
     // Adjust buffersize if it changed in prefs
@@ -229,21 +235,25 @@ function _timer() {
         }
 
     });
+
+    return true;
 }
 
 
 function init() {
-
     // Soup session handle
     SoupSession = new Soup.SessionAsync(); 
 
     // Handle to our gschema settings
     Settings = Convenience.getSettings();
+}
 
+
+function enable() {
     // Just guessing. Is there a better way?
     let FontSize = Math.round(Panel.PANEL_ICON_SIZE / 3) + 1;
 
-    // Main "button" and layout. Gets added to the panel in enable()
+    // Main "button" and layout. Gets added to the panel.
     FrameButton = new PanelMenu.Button(0.5);
     let layout = new St.BoxLayout({ style_class: 'um-widget' });
     FrameButton.actor.add_actor(layout);
@@ -272,8 +282,6 @@ function init() {
     CanvasDown.set_width(BufferSize);
     layout.add(CanvasDown);
 
-    // We glue the chart data buffers to the canvas objects, since this is where
-    // we need them. Not so nice, but works for now.
     CanvasUp.chartData = {
         max:0,
         buffer:[]
@@ -308,13 +316,11 @@ function init() {
     let infoPopup = new PopupMenu.PopupBaseMenuItem({ reactive: false, style_class: 'um-infopopup-item' });
     infoPopup.actor.add(infoPopupBox);
     
-    let prefsButton = new PopupMenu.PopupBaseMenuItem({ style_class: 'um-infopopup-item' });
-    prefsButton.actor.add(new St.Label({ text: "Preferences ..." }));
+    PrefsButton = new PopupMenu.PopupBaseMenuItem({ style_class: 'um-infopopup-item' });
+    PrefsButton.actor.add(new St.Label({ text: "Preferences ..." }));
 
     FrameButton.menu.addMenuItem(infoPopup);
-    FrameButton.menu.addMenuItem(prefsButton);
-
-    // Actions --------------------------------
+    FrameButton.menu.addMenuItem(PrefsButton);
 
     // Repaint graphs
     CanvasUp.connect('repaint', Lang.bind(CanvasUp, _drawCanvas));
@@ -323,7 +329,7 @@ function init() {
     // Lauch preferences from popup menu
     let appSys = Shell.AppSystem.get_default();
     let gsePrefs = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
-    prefsButton.connect('activate', function () {
+    PrefsButton.connect('activate', function () {
         if (gsePrefs.get_state() == gsePrefs.SHELL_APP_STATE_RUNNING){
             gsePrefs.activate();
         }
@@ -334,27 +340,24 @@ function init() {
         }
     });
 
-}
-
-function enable() {
-
-    // Add to panel
+    // Add everything to panel
     Main.panel._addToPanelBox('fritzbox-uplink-monitor', FrameButton, 0, Main.panel._rightBox);
 
     // Reset state
     TickCount = 0;
-    StopTimer = false;
     LinkUp = false;
 
     // Start updating
-    _timer();
+    IntervalTimer = Mainloop.timeout_add_seconds(1, _timer);
 }
 
-function disable() {
 
-    // Remove from panel
+function disable() {
+    Settings.run_dispose();
+
+    // Remove everything from panel
     Main.panel._rightBox.remove_actor(FrameButton.container);
 
-    // Stop updating
-    StopTimer = true;
+    // Remove timer
+    Mainloop.source_remove(IntervalTimer);
 }

@@ -6,26 +6,17 @@
 			<description>Hostname or IP of your Fritzbox. When left empty, defaults to "fritz.box".</description>
 		</key>
 
-		<key name="chart-width" type="u">
-			<default>60</default>
-			<summary>Charts width</summary>
-			<description>Width in pixels for the uplink and downlink charts.</description>
+		<key name="fritzbox-username" type="s">
+			<default>''</default>
+			<summary>Fritzbox username</summary>
+			<description>Username for the Fritzbox.</description>
 		</key>
 
-		<key name="total-color" type="s">
-			<default>'#fce94f'</default>
-			<summary>Color for total traffic graph</summary>
+		<key name="fritzbox-password" type="s">
+			<default>''</default>
+			<summary>Fritzbox password</summary>
+			<description>Password for Fritzbox user.</description>
 		</key>
-
-		<key name="other-color" type="s">
-			<default>'#fce94f'</default>
-			<summary>Color for TV/Phone traffic graph</summary>
-		</key>
-
-		<key name="background-color" type="s">
-			<default>'#fce94f'</default>
-			<summary>Color for graph background</summary>
-		</key>
-
+		
 	</schema>
 </schemalist>

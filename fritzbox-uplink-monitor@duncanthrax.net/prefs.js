@@ -22,31 +22,11 @@ const FritzboxUplinkMonitorSettingsWidget = new GObject.Class({
 		let builder = new Gtk.Builder();
 		builder.add_from_file(Me.path + '/prefs.glade');
 
-		this.pack_start(builder.get_object('mainAlignment'), true, true, 0);
-
-		this._totalColorButton = builder.get_object('totalColorButton');
-		this._otherColorButton = builder.get_object('otherColorButton');
-		this._backgroundColorButton = builder.get_object('backgroundColorButton');
-
-		this._totalColorButton.connect("color-set", Lang.bind(this, function() {
-			this._settings.set_string('total-color', this._totalColorButton.rgba.to_string());
-			this._updateTotalColorButton();
-		}));
-		this._otherColorButton.connect("color-set", Lang.bind(this, function() {
-			this._settings.set_string('other-color', this._otherColorButton.rgba.to_string());
-			this._updateOtherColorButton();
-		}));
-		this._backgroundColorButton.connect("color-set", Lang.bind(this, function() {
-			this._settings.set_string('background-color', this._backgroundColorButton.rgba.to_string());
-			this._updateBackgroundColorButton();
-		}));
-
-		this._updateTotalColorButton();
-		this._updateOtherColorButton();
-		this._updateBackgroundColorButton();
+		this.pack_start(builder.get_object('mainBox'), true, true, 0);
 
 		let fritzboxIpEntry = builder.get_object('fritzboxIpEntry');
-		let chartWidthSpinButton = builder.get_object('chartWidthSpinButton');
+		let fritzboxUsernameEntry = builder.get_object('fritzboxUsernameEntry');
+		let fritzboxPasswordEntry = builder.get_object('fritzboxPasswordEntry');
 
 		fritzboxIpEntry.connect('changed', Lang.bind(this, function() {
 			var text = fritzboxIpEntry.get_text().trim();
@@ -59,28 +39,29 @@ const FritzboxUplinkMonitorSettingsWidget = new GObject.Class({
 		}));
 		fritzboxIpEntry.set_text(this._settings.get_string('fritzbox-ip'));
 
-		chartWidthSpinButton.connect('value-changed', Lang.bind(this, function(button) {
-            this._settings.set_uint('chart-width', button.get_value_as_int());
-        }));
+		fritzboxUsernameEntry.connect('changed', Lang.bind(this, function() {
+			var text = fritzboxUsernameEntry.get_text().trim();
+			if (!text) { 
+				this._settings.set_string('fritzbox-username', '');
+				return;
+			}
+			let match = text.match(/^([A-Za-z0-9]+)$/i);
+			if (match !== null) this._settings.set_string('fritzbox-username', match[1]);
+		}));
+		fritzboxUsernameEntry.set_text(this._settings.get_string('fritzbox-username'));
 
-		chartWidthSpinButton.set_value(this._settings.get_uint('chart-width'));
-	},
+		fritzboxPasswordEntry.connect('changed', Lang.bind(this, function() {
+			var text = fritzboxPasswordEntry.get_text().trim();
+			if (!text) { 
+				this._settings.set_string('fritzbox-password', '');
+				return;
+			}
+			let match = text.match(/^(.+)$/i);
+			if (match !== null) this._settings.set_string('fritzbox-password', match[1]);
+		}));
+		fritzboxPasswordEntry.set_text(this._settings.get_string('fritzbox-password'));
 
-	_parseRgbaColor: function (spec) {
-		let col = new Gdk.RGBA();
-		col.parse(spec);
-		return col;
-	},
-
-	_updateTotalColorButton: function() {
-        this._totalColorButton.set_rgba(this._parseRgbaColor(this._settings.get_string('total-color')));
-    },
-    _updateOtherColorButton: function() {
-        this._otherColorButton.set_rgba(this._parseRgbaColor(this._settings.get_string('other-color')));
-    },
-    _updateBackgroundColorButton: function() {
-        this._backgroundColorButton.set_rgba(this._parseRgbaColor(this._settings.get_string('background-color')));
-    }
+	}
 
 });
 

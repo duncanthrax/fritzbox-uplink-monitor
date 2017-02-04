@@ -117,6 +117,8 @@ function _queryFB(action, successCallback) {
 
 function _processTrafficStatus(successCallback) {
     _queryFB('X_AVM-DE_GetOnlineMonitor', function(data) {
+    
+        //log(data);
 
         let chartDataDownstream = {};
         let chartDataUpstream = {};
@@ -306,9 +308,6 @@ function enable() {
     layout.add(new St.Label({ text: "↑", style: "font-size:"+FontSize+"px;" }), { y_align: St.Align.MIDDLE, y_fill: false });
     CanvasUp = new St.DrawingArea({style_class: 'um-chart-up', reactive: false});
     CanvasUp.set_width(BufferSize*3);
-    CanvasUp.charts = {
-
-    };
     layout.add(CanvasUp);
 
     // Downstream label and canvas

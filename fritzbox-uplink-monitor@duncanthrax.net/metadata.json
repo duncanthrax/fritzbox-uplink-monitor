@@ -1,5 +1,5 @@
 {
- "shell-version": ["3.16", "3.18", "3.20", "3.22"],
+ "shell-version": ["3.16", "3.18", "3.20", "3.22", "3.24"],
  "uuid": "fritzbox-uplink-monitor@duncanthrax.net",
  "name": "Fritzbox Uplink Monitor",
  "url": "https://github.com/duncanthrax/fritzbox-uplink-monitor",

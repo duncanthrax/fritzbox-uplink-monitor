@@ -1,8 +1,9 @@
 {
- "shell-version": ["3.16", "3.18", "3.20", "3.22", "3.24"],
+ "shell-version": ["3.16", "3.18", "3.20", "3.22"],
  "uuid": "fritzbox-uplink-monitor@duncanthrax.net",
  "name": "Fritzbox Uplink Monitor",
  "url": "https://github.com/duncanthrax/fritzbox-uplink-monitor",
  "description": "Show AVM Fritzbox uplink utilization in the panel",
+ "version":2,
  "settings-schema": "org.gnome.shell.extensions.fritzbox-uplink-monitor"
 }
